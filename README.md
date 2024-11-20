@@ -3,14 +3,25 @@ Yet another Coding Style Checker script.
 
 > [!WARNING]
 > To update the docker image, you need to run `cs --update`.
+>
 > Make sure to run it around once a month.
+>
 > Auto updates might be coming in a later update (whenever I have time).
 
 > [!WARNING]
 > This script is subject to be changed often.
+>
 > I made this script for me mostly, if you want to contribute, feel free to open a PR!
 
 (yes this is a double warning.)
+
+# Install
+
+```sh
+git clone https://github.com/hugoarnal/cs
+cd cs
+./install.sh
+```
 
 # Credits:
 - [Mainly BananaSplit](https://github.com/Ardorax/BananaSplit/)
