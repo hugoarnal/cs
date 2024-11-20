@@ -23,6 +23,12 @@ cd cs
 ./install.sh
 ```
 
+# Usage
+
+```
+cs -h
+```
+
 # Credits:
 - [Mainly BananaSplit](https://github.com/Ardorax/BananaSplit/)
 - [Official coding-style-checker](https://github.com/Epitech/coding-style-checker)
