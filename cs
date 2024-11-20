@@ -67,7 +67,7 @@ USAGE:
     cs DELIVERY_DIR REPORTS_DIR (-k)
 
     DELIVERY_DIR    The directory where your project files are.
-    REPORTS_DIR     The directory where your project files are.
+    REPORTS_DIR     The directory where you want the reports files to be.
 
 Commands:
     -k              Keeps the .log file.
