@@ -70,6 +70,7 @@ USAGE:
     REPORTS_DIR     The directory where you want the reports files to be.
 
 Commands:
+    -fc             Does `make fclean` before running Coding Style.
     -k              Keeps the .log file.
 
 Other commands:
@@ -148,6 +149,9 @@ if __name__ == "__main__":
             exit(0)
         elif sys.argv[1] == "-k":
             KEEP_LOG = 1
+        elif sys.argv[1] == "-fc":
+            print("Running make fclean")
+            os.popen("make fclean")
     elif len(sys.argv) >= 3:
         DELIVERY_DIR = sys.argv[1]
         REPORTS_DIR = sys.argv[2]
