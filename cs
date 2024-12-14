@@ -120,14 +120,14 @@ def style(file: str):
     for file in errors:
         print(f"{file}:")
         for error in errors[file]["errors"]:
-            print(f"{COLORS[error["type"]]}{error["type"]} [{error["description"]}]:{COLORS['reset']} {CODING_STYLE_RULES[error["description"]]} {COLORS['gray']}({file}:{error["line"]}){COLORS['reset']}")
+            print(f"{COLORS[error['type']]}{error['type']} [{error['description']}]:{COLORS['reset']} {CODING_STYLE_RULES[error['description']]} {COLORS['gray']}({file}:{error['line']}){COLORS['reset']}")
     total_errors["total"] += total_errors["FATAL"]
     total_errors["total"] += total_errors["MAJOR"]
     total_errors["total"] += total_errors["MINOR"]
     total_errors["total"] += total_errors["INFO"]
     if total_errors["FATAL"] > 0:
-        print(f"{COLORS["FATAL"]}{total_errors['FATAL']} FATAL ERRORS{COLORS['reset']}")
-    print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS["MAJOR"]}{total_errors['MAJOR']} major{COLORS['reset']}, {COLORS['MINOR']}{total_errors['MINOR']} minor{COLORS['reset']}, {COLORS['INFO']}{total_errors['INFO']} info{COLORS['reset']}")
+        print(f"{COLORS['FATAL']}{total_errors['FATAL']} FATAL ERRORS{COLORS['reset']}")
+    print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS['MAJOR']}{total_errors['MAJOR']} major{COLORS['reset']}, {COLORS['MINOR']}{total_errors['MINOR']} minor{COLORS['reset']}, {COLORS['INFO']}{total_errors['INFO']} info{COLORS['reset']}")
 
 def run_docker(docker_command: str):
     FILE = f"{DELIVERY_DIR}/coding-style-reports.log"
