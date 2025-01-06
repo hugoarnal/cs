@@ -18,9 +18,7 @@ Yet another Coding Style Checker script.
 # Install
 
 ```sh
-git clone https://github.com/hugoarnal/cs
-cd cs
-./install.sh
+sudo curl -o /usr/bin/cs https://raw.githubusercontent.com/hugoarnal/cs/main/cs
 ```
 
 # Usage

@@ -97,7 +97,7 @@ Would you like to proceed? (yes/no) """)
 def update(docker_command: str, force_update: bool):
     if force_update is True:
         print("Downloading latest cs version:")
-        os.system("sudo curl -o /usr/bin/cs https://raw.githubusercontent.com/hugoarnal/cs/refs/heads/main/cs")
+        os.system("sudo curl -o /usr/bin/cs https://raw.githubusercontent.com/hugoarnal/cs/main/cs")
         GHCR_REGISTRY_TOKEN=os.popen("curl -s \"https://ghcr.io/token?service=ghcr.io&scope=repository:epitech/coding-style-checker:pull\" | grep -o '\"token\":\"[^\"]*' | grep -o '[^\"]*$'").read()
         GHCR_REPOSITORY_STATUS=os.popen(f"curl -I -f -s -o /dev/null -H \"Authorization: Bearer {GHCR_REGISTRY_TOKEN}\" \"https://ghcr.io/v2/epitech/coding-style-checker/manifests/latest\" && echo 0 || echo 1").read()
         if GHCR_REPOSITORY_STATUS != "0":
