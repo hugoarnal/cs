@@ -19,6 +19,7 @@ Yet another Coding Style Checker script.
 
 ```sh
 sudo curl -o /usr/bin/cs https://raw.githubusercontent.com/hugoarnal/cs/main/cs
+sudo chmod +x /usr/bin/cs
 ```
 
 # Usage

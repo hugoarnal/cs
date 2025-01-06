@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
+import argparse
 import os
-import sys
 
 DELIVERY_DIR = "."
 REPORTS_DIR = "."
@@ -62,21 +62,6 @@ COLORS = {
     "bold": "\033[01m"
 }
 
-readme = """Counter Style
-USAGE:
-    cs DELIVERY_DIR REPORTS_DIR (-k)
-
-    DELIVERY_DIR    The directory where your project files are.
-    REPORTS_DIR     The directory where you want the reports files to be.
-
-Commands:
-    -fc             Does `make fclean` before running Coding Style.
-    -k              Keeps the .log file.
-
-Other commands:
-    -h              Shows this.
-    --update        Updates this repo and the docker image."""
-
 def check_docker_socket():
     docker_sock_access = os.popen("test -r /var/run/docker.sock; printf $?").read()
     USERNAME = os.environ.get("USER")
@@ -130,32 +115,33 @@ def style(file: str):
     print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS['MAJOR']}{total_errors['MAJOR']} major{COLORS['reset']}, {COLORS['MINOR']}{total_errors['MINOR']} minor{COLORS['reset']}, {COLORS['INFO']}{total_errors['INFO']} info{COLORS['reset']}")
 
 def run_docker(docker_command: str):
-    FILE = f"{DELIVERY_DIR}/coding-style-reports.log"
+    FILE = f"{REPORTS_DIR}/coding-style-reports.log"
+    os.system(f"rm -f {FILE}")
     os.system(f"{docker_command} run --rm --security-opt \"label:disable\" -i -v \"{DELIVERY_DIR}\":\"/mnt/delivery\" -v \"{REPORTS_DIR}\":\"/mnt/reports\" ghcr.io/epitech/coding-style-checker:latest \"/mnt/delivery\" \"/mnt/reports\"")
     style(FILE)
     if KEEP_LOG == 0:
         os.system(f"rm -f {FILE}")
 
 if __name__ == "__main__":
-    # TODO: better flag handling
-    # Using argparser would be easier and more interesting.
     docker_command = check_docker_socket()
-    if len(sys.argv) == 2:
-        if sys.argv[1] == "-h":
-            print(readme)
-            exit(0)
-        elif sys.argv[1] == "--update":
-            update(docker_command, True)
-            exit(0)
-        elif sys.argv[1] == "-k":
-            KEEP_LOG = 1
-        elif sys.argv[1] == "-fc":
-            print("Running make fclean")
-            os.popen("make fclean")
-    elif len(sys.argv) >= 3:
-        DELIVERY_DIR = sys.argv[1]
-        REPORTS_DIR = sys.argv[2]
-    if len(sys.argv) == 4:
-        if sys.argv[3] == "-k":
-            KEEP_LOG = 1
+    parser = argparse.ArgumentParser()
+    parser.add_argument("delivery", nargs="?", help="The directory where your project files are", default=".")
+    parser.add_argument("reports", nargs="?", help="The directory where you want the report files to be", default=".")
+    parser.add_argument("--update", help="Update the CS script and the docker image", action="store_true")
+    parser.add_argument("-k", help="Keeps the .log file", action="store_true")
+    parser.add_argument("-fc", help="Runs `make fclean` before the script", action="store_true")
+    args = parser.parse_args()
+
+    if args.update:
+        update(docker_command, True)
+    if args.fc:
+        print("Running make fclean")
+        os.popen("make fclean")
+    if args.k:
+        KEEP_LOG = 1
+    # TODO: fix not working
+    # if args.delivery:
+    #     DELIVERY_DIR = args.delivery
+    # if args.reports:
+    #     REPORTS_DIR = args.reports
     run_docker(docker_command)
