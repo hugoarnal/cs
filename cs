@@ -62,6 +62,11 @@ COLORS = {
     "bold": "\033[01m"
 }
 
+def read_abspath_link(relpath: str):
+    if os.path.islink(relpath):
+        relpath = os.readlink(relpath)
+    return os.path.abspath(relpath)
+
 def check_docker_socket():
     docker_sock_access = os.popen("test -r /var/run/docker.sock; printf $?").read()
     USERNAME = os.environ.get("USER")
@@ -139,9 +144,8 @@ if __name__ == "__main__":
         os.popen("make fclean")
     if args.k:
         KEEP_LOG = 1
-    # TODO: fix not working
-    # if args.delivery:
-    #     DELIVERY_DIR = args.delivery
-    # if args.reports:
-    #     REPORTS_DIR = args.reports
+    if args.delivery:
+        DELIVERY_DIR = read_abspath_link(args.delivery)
+    if args.reports:
+        REPORTS_DIR = read_abspath_link(args.reports)
     run_docker(docker_command)
