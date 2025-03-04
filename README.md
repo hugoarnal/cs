@@ -18,8 +18,7 @@ Yet another Coding Style Checker script.
 # Install
 
 ```sh
-sudo curl -o /usr/bin/cs https://raw.githubusercontent.com/hugoarnal/cs/main/cs
-sudo chmod +x /usr/bin/cs
+curl -s https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh | sh
 ```
 
 # Usage
