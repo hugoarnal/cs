@@ -86,29 +86,16 @@ Would you like to proceed? (yes/no) """)
 
 def update(docker_command: str, force_update: bool):
     if force_update is True:
-        os.system("curl -s https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh | sh")
+        print("Downloading latest cs version:")
+        os.system("sudo curl -o /usr/bin/cs https://raw.githubusercontent.com/hugoarnal/cs/main/cs")
         GHCR_REGISTRY_TOKEN=os.popen("curl -s \"https://ghcr.io/token?service=ghcr.io&scope=repository:epitech/coding-style-checker:pull\" | grep -o '\"token\":\"[^\"]*' | grep -o '[^\"]*$'").read()
         GHCR_REPOSITORY_STATUS=os.popen(f"curl -I -f -s -o /dev/null -H \"Authorization: Bearer {GHCR_REGISTRY_TOKEN}\" \"https://ghcr.io/v2/epitech/coding-style-checker/manifests/latest\" && echo 0 || echo 1").read()
         if GHCR_REPOSITORY_STATUS != "0":
             os.system(f"{docker_command} pull ghcr.io/epitech/coding-style-checker:latest && {docker_command} image prune -f")
 
-def print_errors(errors: dict):
-    total_errors = {"FATAL": 0, "MAJOR": 0, "MINOR": 0, "INFO": 0, "total": 0}
-
-    for file in errors:
-        print(f"{file}:")
-        for error in errors[file]["errors"]:
-            total_errors[error] += 1
-    total_errors["total"] += total_errors["FATAL"]
-    total_errors["total"] += total_errors["MAJOR"]
-    total_errors["total"] += total_errors["MINOR"]
-    total_errors["total"] += total_errors["INFO"]
-    if total_errors["FATAL"] > 0:
-        print(f"{COLORS['FATAL']}{total_errors['FATAL']} FATAL ERRORS{COLORS['reset']}")
-    print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS['MAJOR']}{total_errors['MAJOR']} major{COLORS['reset']}, {COLORS['MINOR']}{total_errors['MINOR']} minor{COLORS['reset']}, {COLORS['INFO']}{total_errors['INFO']} info{COLORS['reset']}")
-
 def style(file: str):
     errors = {}
+    total_errors = {"FATAL": 0, "MAJOR": 0, "MINOR": 0, "INFO": 0, "total": 0}
     lines = open(file).read().splitlines()
     for line in lines:
         file = line.split(":")[0]
@@ -119,7 +106,18 @@ def style(file: str):
             errors[file] = {"errors": [{"type": error, "description": description, "line": line_nbr}]}
         else:
             errors[file]["errors"].append({"type": error, "description": description, "line": line_nbr})
-    print_errors(errors)
+        total_errors[error] += 1
+    for file in errors:
+        print(f"{file}:")
+        for error in errors[file]["errors"]:
+            print(f"{COLORS[error['type']]}{error['type']} [{error['description']}]:{COLORS['reset']} {CODING_STYLE_RULES[error['description']]} {COLORS['gray']}({file}:{error['line']}){COLORS['reset']}")
+    total_errors["total"] += total_errors["FATAL"]
+    total_errors["total"] += total_errors["MAJOR"]
+    total_errors["total"] += total_errors["MINOR"]
+    total_errors["total"] += total_errors["INFO"]
+    if total_errors["FATAL"] > 0:
+        print(f"{COLORS['FATAL']}{total_errors['FATAL']} FATAL ERRORS{COLORS['reset']}")
+    print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS['MAJOR']}{total_errors['MAJOR']} major{COLORS['reset']}, {COLORS['MINOR']}{total_errors['MINOR']} minor{COLORS['reset']}, {COLORS['INFO']}{total_errors['INFO']} info{COLORS['reset']}")
 
 def run_docker(docker_command: str):
     FILE = f"{REPORTS_DIR}/coding-style-reports.log"
