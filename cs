@@ -86,7 +86,7 @@ Would you like to proceed? (yes/no) """)
 
 def update(docker_command: str, force_update: bool):
     if force_update is True:
-        os.system("curl -s https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh | sh")
+        os.system("curl -s https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh | bash")
         GHCR_REGISTRY_TOKEN=os.popen("curl -s \"https://ghcr.io/token?service=ghcr.io&scope=repository:epitech/coding-style-checker:pull\" | grep -o '\"token\":\"[^\"]*' | grep -o '[^\"]*$'").read()
         GHCR_REPOSITORY_STATUS=os.popen(f"curl -I -f -s -o /dev/null -H \"Authorization: Bearer {GHCR_REGISTRY_TOKEN}\" \"https://ghcr.io/v2/epitech/coding-style-checker/manifests/latest\" && echo 0 || echo 1").read()
         if GHCR_REPOSITORY_STATUS != "0":
