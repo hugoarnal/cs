@@ -2,6 +2,8 @@
 import argparse
 import os
 
+INSTALL_LINK = "https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh"
+
 DELIVERY_DIR = "."
 REPORTS_DIR = "."
 KEEP_LOG = 0
@@ -86,11 +88,14 @@ Would you like to proceed? (yes/no) """)
 
 def update(docker_command: str, force_update: bool):
     if force_update is True:
-        os.system("curl -s https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh | bash")
+        if os.system(f"curl -s {INSTALL_LINK} | bash") != 0:
+            exit(1)
         GHCR_REGISTRY_TOKEN=os.popen("curl -s \"https://ghcr.io/token?service=ghcr.io&scope=repository:epitech/coding-style-checker:pull\" | grep -o '\"token\":\"[^\"]*' | grep -o '[^\"]*$'").read()
         GHCR_REPOSITORY_STATUS=os.popen(f"curl -I -f -s -o /dev/null -H \"Authorization: Bearer {GHCR_REGISTRY_TOKEN}\" \"https://ghcr.io/v2/epitech/coding-style-checker/manifests/latest\" && echo 0 || echo 1").read()
         if GHCR_REPOSITORY_STATUS != "0":
             os.system(f"{docker_command} pull ghcr.io/epitech/coding-style-checker:latest && {docker_command} image prune -f")
+        print("")
+        print(f"{COLORS['bold']}Successfully updated cs{COLORS['reset']}")
 
 def style(file: str):
     errors = {}
@@ -138,6 +143,7 @@ if __name__ == "__main__":
 
     if args.update:
         update(docker_command, True)
+        exit(0)
     if args.fc:
         print("Running make fclean")
         os.popen("make fclean")
