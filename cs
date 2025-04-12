@@ -97,7 +97,7 @@ def style(file: str):
     total_errors = {"FATAL": 0, "MAJOR": 0, "MINOR": 0, "INFO": 0, "total": 0}
     lines = open(file).read().splitlines()
     for line in lines:
-        file = line.split(":")[0]
+        file = line.split("./")[1].split(":")[0]
         error = line.split(": ")[1].split(":")[0]
         description = line.split(": ")[1].split(":")[1]
         line_nbr = line.split(":")[1]
@@ -107,7 +107,7 @@ def style(file: str):
             errors[file]["errors"].append({"type": error, "description": description, "line": line_nbr})
         total_errors[error] += 1
     for file in errors:
-        print(f"{file}:")
+        print(f"./{file}:")
         for error in errors[file]["errors"]:
             print(f"{COLORS[error['type']]}{error['type']} [{error['description']}]:{COLORS['reset']} {CODING_STYLE_RULES[error['description']]} {COLORS['gray']}({file}:{error['line']}){COLORS['reset']}")
     total_errors["total"] += total_errors["FATAL"]
