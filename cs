@@ -70,18 +70,7 @@ def read_abspath_link(relpath: str):
     return os.path.abspath(relpath)
 
 def check_docker_socket():
-    docker_sock_access = os.popen("test -r /var/run/docker.sock; printf $?").read()
-    USERNAME = os.environ.get("USER")
-    if docker_sock_access != "0":
-        answer = input(f"""WARNING: Socket access is denied
-To fix this we will add the current user to docker group with: sudo usermod -a -G docker {USERNAME}"
-Would you like to proceed? (yes/no) """)
-        if answer in ["yes", "y", "Yes", "Y", "YES"]:
-            print(f"Proceeding with adding user to docker group.")
-            os.system(f"sudo usermod -a -G docker {USERNAME}")
-            print(f"Please restart your computer for the changes to take effect.")
-        else:
-            print(f"Not adding {USERNAME} to docker group.")
+    if os.access("/var/run/docker.sock", os.R_OK) is False:
         return "sudo docker"
     else:
         return "docker"
