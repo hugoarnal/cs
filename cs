@@ -7,6 +7,7 @@ INSTALL_LINK = "https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh"
 DELIVERY_DIR = "."
 REPORTS_DIR = "."
 KEEP_LOG = False
+IGNORE_FILES = True
 
 CODING_STYLE_RULES = {
     # C-O: Files organization
@@ -75,6 +76,13 @@ def check_docker_socket() -> str:
     else:
         return "docker"
 
+def ignore_file(file: str) -> bool:
+    ignored_files = os.popen("git check-ignore $(find . -type f -printf \"%P\n\")").read()
+    for line in ignored_files.splitlines():
+        if file == line:
+            return True
+    return False
+
 def update(docker_command: str, force_update: bool) -> None:
     if force_update is True:
         if os.system(f"curl -s {INSTALL_LINK} | bash") != 0:
@@ -89,12 +97,16 @@ def update(docker_command: str, force_update: bool) -> None:
 def style(file: str) -> None:
     errors = {}
     total_errors = {"FATAL": 0, "MAJOR": 0, "MINOR": 0, "INFO": 0, "total": 0}
+    ignored_errors = 0
     lines = open(file).read().splitlines()
     for line in lines:
         file = line.split("./")[1].split(":")[0]
         error = line.split(": ")[1].split(":")[0]
         description = line.split(": ")[1].split(":")[1]
         line_nbr = line.split(":")[1]
+        if IGNORE_FILES and ignore_file(file):
+            ignored_errors += 1
+            continue
         if file not in errors:
             errors[file] = {"errors": [{"type": error, "description": description, "line": line_nbr}]}
         else:
@@ -108,6 +120,8 @@ def style(file: str) -> None:
     total_errors["total"] += total_errors["MAJOR"]
     total_errors["total"] += total_errors["MINOR"]
     total_errors["total"] += total_errors["INFO"]
+    if IGNORE_FILES and ignored_errors > 0:
+        print(f"{COLORS['MINOR']}{ignored_errors}{COLORS['reset']} ignored error(s){COLORS['reset']}")
     if total_errors["FATAL"] > 0:
         print(f"{COLORS['FATAL']}{total_errors['FATAL']} FATAL ERRORS{COLORS['reset']}")
     print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS['MAJOR']}{total_errors['MAJOR']} major{COLORS['reset']}, {COLORS['MINOR']}{total_errors['MINOR']} minor{COLORS['reset']}, {COLORS['INFO']}{total_errors['INFO']} info{COLORS['reset']}")
@@ -133,6 +147,7 @@ if __name__ == "__main__":
     parser.add_argument("delivery", nargs="?", help="The directory where your project files are", default=".")
     parser.add_argument("reports", nargs="?", help="The directory where you want the report files to be", default=".")
     parser.add_argument("--update", help="Update the CS script and the docker image", action="store_true")
+    parser.add_argument("--no-ignore", help="Don't ignore files in .gitignore", action="store_true")
     parser.add_argument("-k", help="Keeps the .log file", action="store_true")
     parser.add_argument("-fc", help="Runs `make fclean` before the script", action="store_true")
     args = parser.parse_args()
@@ -143,6 +158,8 @@ if __name__ == "__main__":
     if args.fc:
         print("Running make fclean")
         os.popen("make fclean")
+    if args.no_ignore:
+        IGNORE_FILES = False
     if args.k:
         KEEP_LOG = True
     if args.delivery:
