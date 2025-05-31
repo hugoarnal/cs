@@ -88,22 +88,9 @@ def ignore_file(file: str) -> bool:
 def update(docker_command: str) -> None:
     if os.system(f"curl -s {INSTALL_LINK} | bash") != 0:
         exit(1)
-    try:
-        response = urlopen("https://ghcr.io/token?service=ghcr.io&scope=repository:epitech/coding-style-checker:pull").read()
-        registry_token = json.loads(response)["token"]
-    except:
-        print("An error occured when trying to get the coding-style-checker token")
-        return
-    request = Request("https://ghcr.io/v2/epitech/coding-style-checker/manifests/latest")
-    request.add_header("Authorization", f"Bearer {registry_token}")
-    try:
-        response = urlopen(request).read()
-        os.system(f"{docker_command} pull ghcr.io/epitech/coding-style-checker:latest && {docker_command} image prune -f")
-    except:
-        print("An error occured when trying to get the authorization for the coding-style-checker image")
-        return
-    print("")
-    print(f"{COLORS['bold']}Successfully updated cs{COLORS['reset']}")
+    os.system(f"{docker_command} pull ghcr.io/epitech/coding-style-checker:latest")
+    os.system(f"{docker_command} image prune -f")
+    print(f"\n{COLORS['bold']}Successfully updated cs{COLORS['reset']}")
 
 def parse_error_file(file: str, total_errors: dict) -> dict:
     errors = {}
