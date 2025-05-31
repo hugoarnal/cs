@@ -6,7 +6,7 @@ INSTALL_LINK = "https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh"
 
 DELIVERY_DIR = "."
 REPORTS_DIR = "."
-KEEP_LOG = 0
+KEEP_LOG = False
 
 CODING_STYLE_RULES = {
     # C-O: Files organization
@@ -64,18 +64,18 @@ COLORS = {
     "bold": "\033[01m"
 }
 
-def read_abspath_link(relpath: str):
+def read_abspath_link(relpath: str) -> str:
     if os.path.islink(relpath):
         relpath = os.readlink(relpath)
     return os.path.abspath(relpath)
 
-def check_docker_socket():
+def check_docker_socket() -> str:
     if os.access("/var/run/docker.sock", os.R_OK) is False:
         return "sudo docker"
     else:
         return "docker"
 
-def update(docker_command: str, force_update: bool):
+def update(docker_command: str, force_update: bool) -> None:
     if force_update is True:
         if os.system(f"curl -s {INSTALL_LINK} | bash") != 0:
             exit(1)
@@ -86,7 +86,7 @@ def update(docker_command: str, force_update: bool):
         print("")
         print(f"{COLORS['bold']}Successfully updated cs{COLORS['reset']}")
 
-def style(file: str):
+def style(file: str) -> None:
     errors = {}
     total_errors = {"FATAL": 0, "MAJOR": 0, "MINOR": 0, "INFO": 0, "total": 0}
     lines = open(file).read().splitlines()
@@ -112,13 +112,20 @@ def style(file: str):
         print(f"{COLORS['FATAL']}{total_errors['FATAL']} FATAL ERRORS{COLORS['reset']}")
     print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS['MAJOR']}{total_errors['MAJOR']} major{COLORS['reset']}, {COLORS['MINOR']}{total_errors['MINOR']} minor{COLORS['reset']}, {COLORS['INFO']}{total_errors['INFO']} info{COLORS['reset']}")
 
-def run_docker(docker_command: str):
+def delete_file(file: str) -> None:
+    try:
+        os.remove(file)
+    except:
+        None
+
+def run_docker(docker_command: str) -> None:
     FILE = f"{REPORTS_DIR}/coding-style-reports.log"
-    os.system(f"rm -f {FILE}")
+
+    delete_file(FILE)
     os.system(f"{docker_command} run --rm --security-opt \"label:disable\" -i -v \"{DELIVERY_DIR}\":\"/mnt/delivery\" -v \"{REPORTS_DIR}\":\"/mnt/reports\" ghcr.io/epitech/coding-style-checker:latest \"/mnt/delivery\" \"/mnt/reports\"")
     style(FILE)
-    if KEEP_LOG == 0:
-        os.system(f"rm -f {FILE}")
+    if not KEEP_LOG:
+        delete_file(FILE)
 
 if __name__ == "__main__":
     docker_command = check_docker_socket()
@@ -137,7 +144,7 @@ if __name__ == "__main__":
         print("Running make fclean")
         os.popen("make fclean")
     if args.k:
-        KEEP_LOG = 1
+        KEEP_LOG = True
     if args.delivery:
         DELIVERY_DIR = read_abspath_link(args.delivery)
     if args.reports:
