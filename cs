@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import os
-import json
-from urllib.request import Request, urlopen
 
 INSTALL_LINK = "https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh"
 
