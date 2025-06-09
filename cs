@@ -94,37 +94,47 @@ def update(docker_command: str, force_update: bool) -> None:
         print("")
         print(f"{COLORS['bold']}Successfully updated cs{COLORS['reset']}")
 
-def style(file: str) -> None:
+def parse_error_file(file: str, total_errors: dict) -> dict:
     errors = {}
-    total_errors = {"FATAL": 0, "MAJOR": 0, "MINOR": 0, "INFO": 0, "total": 0}
-    ignored_errors = 0
     lines = open(file).read().splitlines()
+
     for line in lines:
         file = line.split("./")[1].split(":")[0]
         error = line.split(": ")[1].split(":")[0]
         description = line.split(": ")[1].split(":")[1]
         line_nbr = line.split(":")[1]
+
         if IGNORE_FILES and ignore_file(file):
-            ignored_errors += 1
+            total_errors["ignored"] += 1
             continue
         if file not in errors:
             errors[file] = {"errors": [{"type": error, "description": description, "line": line_nbr}]}
         else:
             errors[file]["errors"].append({"type": error, "description": description, "line": line_nbr})
         total_errors[error] += 1
+        total_errors["total"] += 1
+    return errors
+
+def print_errors(errors: dict) -> None:
     for file in errors:
         print(f"./{file}:")
         for error in errors[file]["errors"]:
             print(f"{COLORS[error['type']]}{error['type']} [{error['description']}]:{COLORS['reset']} {CODING_STYLE_RULES[error['description']]} {COLORS['gray']}({file}:{error['line']}){COLORS['reset']}")
-    total_errors["total"] += total_errors["FATAL"]
-    total_errors["total"] += total_errors["MAJOR"]
-    total_errors["total"] += total_errors["MINOR"]
-    total_errors["total"] += total_errors["INFO"]
-    if IGNORE_FILES and ignored_errors > 0:
-        print(f"{COLORS['MINOR']}{ignored_errors}{COLORS['reset']} ignored error(s){COLORS['reset']}")
+
+def print_summary_errors(total_errors: dict) -> None:
+    if IGNORE_FILES and total_errors["ignored"] > 0:
+        print(f"{COLORS['MINOR']}{total_errors["ignored"]}{COLORS['reset']} ignored error(s){COLORS['reset']}")
     if total_errors["FATAL"] > 0:
         print(f"{COLORS['FATAL']}{total_errors['FATAL']} FATAL ERRORS{COLORS['reset']}")
     print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS['MAJOR']}{total_errors['MAJOR']} major{COLORS['reset']}, {COLORS['MINOR']}{total_errors['MINOR']} minor{COLORS['reset']}, {COLORS['INFO']}{total_errors['INFO']} info{COLORS['reset']}")
+
+
+def style(file: str) -> None:
+    total_errors = {"FATAL": 0, "MAJOR": 0, "MINOR": 0, "INFO": 0, "total": 0, "ignored": 0}
+    errors = parse_error_file(file, total_errors)
+
+    print_errors(errors)
+    print_summary_errors(total_errors)
 
 def delete_file(file: str) -> None:
     try:
