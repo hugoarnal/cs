@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import os
+from enum import Enum
 
 INSTALL_LINK = "https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh"
 DOCKER_SOCKET = "/var/run/docker.sock"
@@ -52,11 +53,19 @@ CODING_STYLE_RULES = {
     "C-A3": "File not ending with a line break (\\\\n)",
 }
 
+class ErrorType(Enum):
+    FATAL = "FATAL",
+    MAJOR = "MAJOR",
+    MINOR = "MINOR",
+    INFO = "INFO",
+    def __str__(self):
+        return self.value[0]
+
 COLORS = {
-    "FATAL": "\033[31m",
-    "MAJOR": "\033[31m",
-    "MINOR": "\033[93m",
-    "INFO": "\033[36m",
+    ErrorType.FATAL: "\033[31m",
+    ErrorType.MAJOR: "\033[31m",
+    ErrorType.MINOR: "\033[93m",
+    ErrorType.INFO: "\033[36m",
     "gray": "\033[90m",
     "reset": "\033[0m",
     "bold": "\033[01m"
@@ -85,8 +94,8 @@ def read_abspath_link(relpath: str) -> str:
     return os.path.abspath(relpath)
 
 class Error:
-    def __init__(self, error_type: str, rule: str, description: str, line: str) -> None:
-        self.type: str = error_type
+    def __init__(self, error_type: ErrorType, rule: str, description: str, line: str) -> None:
+        self.type: ErrorType = error_type
         self.rule: str = rule
         self.description: str = description
         self.line: str = line
@@ -162,7 +171,11 @@ class CounterStyle:
 
         for line in lines:
             file = line.split("./")[1].split(":")[0]
-            error_type = line.split(": ")[1].split(":")[0]
+            error_type_str = line.split(": ")[1].split(":")[0]
+            try:
+                error_type = ErrorType[error_type_str]
+            except:
+                raise ValueError(f"Unknown error type {error_type_str}")
             if " #" in line:
                 rule = line.split(": ")[1].split(":")[1].split(" #")[0]
                 description = line.split(": ")[1].split(":")[1].split(" #")[1]
@@ -190,14 +203,14 @@ class CounterStyle:
 
     def print_summary_errors(self, total_errors: dict) -> None:
         if self.ignore and total_errors["ignored"] > 0:
-            print(f"{COLORS['MINOR']}{total_errors['ignored']}{COLORS['reset']} ignored error(s){COLORS['reset']}")
-        if total_errors["FATAL"] > 0:
-            print(f"{COLORS['FATAL']}{total_errors['FATAL']} FATAL ERRORS{COLORS['reset']}")
-        print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS['MAJOR']}{total_errors['MAJOR']} major{COLORS['reset']}, {COLORS['MINOR']}{total_errors['MINOR']} minor{COLORS['reset']}, {COLORS['INFO']}{total_errors['INFO']} info{COLORS['reset']}")
+            print(f"{COLORS[ErrorType.MINOR]}{total_errors['ignored']}{COLORS['reset']} ignored error(s){COLORS['reset']}")
+        if total_errors[ErrorType.FATAL] > 0:
+            print(f"{COLORS[ErrorType.FATAL]}{total_errors['FATAL']} FATAL ERRORS{COLORS['reset']}")
+        print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS[ErrorType.MAJOR]}{total_errors[ErrorType.MAJOR]} major{COLORS['reset']}, {COLORS[ErrorType.MINOR]}{total_errors[ErrorType.MINOR]} minor{COLORS['reset']}, {COLORS['INFO']}{total_errors[ErrorType.INFO]} info{COLORS['reset']}")
 
 
     def style(self) -> None:
-        total_errors = {"FATAL": 0, "MAJOR": 0, "MINOR": 0, "INFO": 0, "total": 0, "ignored": 0}
+        total_errors = {ErrorType.FATAL: 0, ErrorType.MAJOR: 0, ErrorType.MINOR: 0, ErrorType.INFO: 0, "total": 0, "ignored": 0}
         errors = self.parse_log_file(total_errors)
 
         self.print_errors(errors)
