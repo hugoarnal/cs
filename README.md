@@ -2,24 +2,22 @@
 Yet another Coding Style Checker script.
 
 > [!WARNING]
-> To update the docker image, you need to run `cs --update`.
+> This script is subject to be changed VERY often.
 >
-> Make sure to run it around once a month.
+> I made this script for my usage.
 >
-> Auto updates might be coming in a later update (whenever I have time).
-
-> [!WARNING]
-> This script is subject to be changed often.
->
-> I made this script for me mostly, if you want to contribute, feel free to open a PR!
-
-(yes this is a double warning.)
+> If you still wish to contribute, feel free to open a PR!
 
 # Install
 
 ```sh
 curl -s https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh | sh
 ```
+
+# Updates
+To update the docker image, you need to run `cs --update`.
+
+Make sure to run it around once a month or whenever the official docker image gets updated.
 
 # Usage
 
@@ -39,4 +37,4 @@ I was using [BananaSplit](https://github.com/Ardorax/BananaSplit/) before I made
 - You cannot choose to keep the .log.
 - You have to specify the path everytime you run it.
 
-I also know the [Mango (RIP)](https://github.com/Clement-Z4RM/Mango/) script exists, but it's even longer than any script and the space it takes with the Mango logo is just huge.
+I also know the [Mango](https://github.com/Clement-Z4RM/Mango/) script exists, but it's even longer than any script and the space it takes with the Mango logo is just huge.
