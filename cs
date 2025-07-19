@@ -84,23 +84,41 @@ def read_abspath_link(relpath: str) -> str:
         relpath = os.readlink(relpath)
     return os.path.abspath(relpath)
 
+class Error:
+    def __init__(self, error_type: str, rule: str, description: str, line: str) -> None:
+        self.type: str = error_type
+        self.rule: str = rule
+        self.description: str = description
+        self.line: str = line
+
+class FileError:
+    def __init__(self, file: str):
+        self.file: str = file
+        self.errors: list[Error] = []
+
+# Returns a new file_error if not found
+def file_in_array(files: list[FileError], file: str) -> tuple:
+    for file_error in files:
+        if file_error.file == file:
+            return (True, file_error)
+    return (False, FileError(file))
 
 class CounterStyle:
-    def __init__(self):
-        self.delivery_dir = "."
-        self.reports_dir = "."
-        self.ignore = True
-        self.keep_log = False
+    def __init__(self) -> None:
+        self.delivery_dir: str = "."
+        self.reports_dir: str = "."
+        self.ignore: bool = True
+        self.keep_log: bool = False
 
-        self.log_file = ""
+        self.log_file: str = ""
 
-        self.docker = check_docker_socket()
-        self.ignored_files = get_ignored_files()
+        self.docker: str = check_docker_socket()
+        self.ignored_files: str = get_ignored_files()
 
         self.parse_args()
         self.run_docker()
 
-    def parse_args(self):
+    def parse_args(self) -> None:
         parser = argparse.ArgumentParser()
         parser.add_argument("delivery", nargs="?", help="The directory where your project files are", default=".")
         parser.add_argument("reports", nargs="?", help="The directory where you want the report files to be", default=".")
@@ -138,32 +156,37 @@ class CounterStyle:
         os.system(f"{self.docker} image prune -f")
         print(f"\n{COLORS['bold']}Successfully updated cs{COLORS['reset']}")
 
-    def parse_log_file(self, total_errors: dict) -> dict:
-        errors = {}
+    def parse_log_file(self, total_errors: dict) -> list[FileError]:
+        errors = []
         lines = open(self.log_file).read().splitlines()
 
         for line in lines:
             file = line.split("./")[1].split(":")[0]
-            error = line.split(": ")[1].split(":")[0]
-            description = line.split(": ")[1].split(":")[1]
+            error_type = line.split(": ")[1].split(":")[0]
+            if " #" in line:
+                rule = line.split(": ")[1].split(":")[1].split(" #")[0]
+                description = line.split(": ")[1].split(":")[1].split(" #")[1]
+            else:
+                rule = line.split(": ")[1].split(":")[1]
+                description = "hello world"
             line_nbr = line.split(":")[1]
 
             if self.ignore and self.ignore_file(file):
                 total_errors["ignored"] += 1
                 continue
-            if file not in errors:
-                errors[file] = {"errors": [{"type": error, "description": description, "line": line_nbr}]}
-            else:
-                errors[file]["errors"].append({"type": error, "description": description, "line": line_nbr})
-            total_errors[error] += 1
+            file_error = file_in_array(errors, file)
+            if file_error[0] is False:
+                errors.append(file_error[1])
+            file_error[1].errors.append(Error(error_type, rule, description, line_nbr))
+            total_errors[error_type] += 1
             total_errors["total"] += 1
         return errors
 
-    def print_errors(self, errors: dict) -> None:
-        for file in errors:
-            print(f"./{file}:")
-            for error in errors[file]["errors"]:
-                print(f"{COLORS[error['type']]}{error['type']} [{error['description']}]:{COLORS['reset']} {CODING_STYLE_RULES[error['description']]} {COLORS['gray']}({file}:{error['line']}){COLORS['reset']}")
+    def print_errors(self, errors: list[FileError]) -> None:
+        for file_error in errors:
+            print(f"./{file_error.file}:")
+            for error in file_error.errors:
+                print(f"{COLORS[error.type]}{error.type} [{error.rule}]:{COLORS['reset']} {CODING_STYLE_RULES[error.rule]} {COLORS['gray']}({file_error.file}:{error.line}){COLORS['reset']}")
 
     def print_summary_errors(self, total_errors: dict) -> None:
         if self.ignore and total_errors["ignored"] > 0:
