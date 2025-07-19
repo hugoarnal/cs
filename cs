@@ -3,11 +3,8 @@ import argparse
 import os
 
 INSTALL_LINK = "https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh"
-
-DELIVERY_DIR = "."
-REPORTS_DIR = "."
-KEEP_LOG = False
-IGNORE_FILES = True
+DOCKER_SOCKET = "/var/run/docker.sock"
+DOCKER_IMAGE = "ghcr.io/epitech/coding-style-checker:latest"
 
 CODING_STYLE_RULES = {
     # C-O: Files organization
@@ -65,72 +62,13 @@ COLORS = {
     "bold": "\033[01m"
 }
 
-def read_abspath_link(relpath: str) -> str:
-    if os.path.islink(relpath):
-        relpath = os.readlink(relpath)
-    return os.path.abspath(relpath)
-
 def check_docker_socket() -> str:
-    if os.access("/var/run/docker.sock", os.R_OK) is False:
+    if os.access(DOCKER_SOCKET, os.F_OK) is False:
+        raise FileNotFoundError("Docker socket not found")
+    if os.access(DOCKER_SOCKET, os.R_OK) is False:
         return "sudo docker"
     else:
         return "docker"
-
-def ignore_file(file: str) -> bool:
-    ignored_files = os.popen("git check-ignore $(find . -type f -printf \"%P\n\")").read()
-    for line in ignored_files.splitlines():
-        if file == line:
-            return True
-    return False
-
-def update(docker_command: str) -> None:
-    if os.system(f"curl -s {INSTALL_LINK} | bash") != 0:
-        exit(1)
-    os.system(f"{docker_command} pull ghcr.io/epitech/coding-style-checker:latest")
-    os.system(f"{docker_command} image prune -f")
-    print(f"\n{COLORS['bold']}Successfully updated cs{COLORS['reset']}")
-
-def parse_error_file(file: str, total_errors: dict) -> dict:
-    errors = {}
-    lines = open(file).read().splitlines()
-
-    for line in lines:
-        file = line.split("./")[1].split(":")[0]
-        error = line.split(": ")[1].split(":")[0]
-        description = line.split(": ")[1].split(":")[1]
-        line_nbr = line.split(":")[1]
-
-        if IGNORE_FILES and ignore_file(file):
-            total_errors["ignored"] += 1
-            continue
-        if file not in errors:
-            errors[file] = {"errors": [{"type": error, "description": description, "line": line_nbr}]}
-        else:
-            errors[file]["errors"].append({"type": error, "description": description, "line": line_nbr})
-        total_errors[error] += 1
-        total_errors["total"] += 1
-    return errors
-
-def print_errors(errors: dict) -> None:
-    for file in errors:
-        print(f"./{file}:")
-        for error in errors[file]["errors"]:
-            print(f"{COLORS[error['type']]}{error['type']} [{error['description']}]:{COLORS['reset']} {CODING_STYLE_RULES[error['description']]} {COLORS['gray']}({file}:{error['line']}){COLORS['reset']}")
-
-def print_summary_errors(total_errors: dict) -> None:
-    if IGNORE_FILES and total_errors["ignored"] > 0:
-        print(f"{COLORS['MINOR']}{total_errors["ignored"]}{COLORS['reset']} ignored error(s){COLORS['reset']}")
-    if total_errors["FATAL"] > 0:
-        print(f"{COLORS['FATAL']}{total_errors['FATAL']} FATAL ERRORS{COLORS['reset']}")
-    print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS['MAJOR']}{total_errors['MAJOR']} major{COLORS['reset']}, {COLORS['MINOR']}{total_errors['MINOR']} minor{COLORS['reset']}, {COLORS['INFO']}{total_errors['INFO']} info{COLORS['reset']}")
-
-
-def style(file: str) -> None:
-    total_errors = {"FATAL": 0, "MAJOR": 0, "MINOR": 0, "INFO": 0, "total": 0, "ignored": 0}
-    errors = parse_error_file(file, total_errors)
-
-    print_errors(errors)
-    print_summary_errors(total_errors)
 
 def delete_file(file: str) -> None:
     try:
@@ -138,38 +76,118 @@ def delete_file(file: str) -> None:
     except:
         None
 
-def run_docker(docker_command: str) -> None:
-    FILE = f"{REPORTS_DIR}/coding-style-reports.log"
+def get_ignored_files() -> str:
+    return os.popen("git check-ignore $(find . -type f -printf \"%P\n\")").read()
 
-    delete_file(FILE)
-    os.system(f"{docker_command} run --rm --security-opt \"label:disable\" -i -v \"{DELIVERY_DIR}\":\"/mnt/delivery\" -v \"{REPORTS_DIR}\":\"/mnt/reports\" ghcr.io/epitech/coding-style-checker:latest \"/mnt/delivery\" \"/mnt/reports\"")
-    style(FILE)
-    if not KEEP_LOG:
-        delete_file(FILE)
+def read_abspath_link(relpath: str) -> str:
+    if os.path.islink(relpath):
+        relpath = os.readlink(relpath)
+    return os.path.abspath(relpath)
+
+
+class CounterStyle:
+    def __init__(self):
+        self.delivery_dir = "."
+        self.reports_dir = "."
+        self.ignore = True
+        self.keep_log = False
+
+        self.log_file = ""
+
+        self.docker = check_docker_socket()
+        self.ignored_files = get_ignored_files()
+
+        self.parse_args()
+        self.run_docker()
+
+    def parse_args(self):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("delivery", nargs="?", help="The directory where your project files are", default=".")
+        parser.add_argument("reports", nargs="?", help="The directory where you want the report files to be", default=".")
+        parser.add_argument("--update", help="Update the CS script and the docker image", action="store_true")
+        parser.add_argument("--no-ignore", help="Don't ignore files in .gitignore", action="store_true")
+        parser.add_argument("-k", help="Keeps the .log file", action="store_true")
+        parser.add_argument("-fc", help="Runs `make fclean` before the script", action="store_true")
+        args = parser.parse_args()
+
+        if args.update:
+            self.update()
+            exit(0)
+        if args.fc:
+            print("Running make fclean")
+            os.popen("make fclean")
+        if args.no_ignore:
+            self.ignore = False
+        if args.k:
+            self.keep_log = True
+        if args.delivery:
+            self.delivery_dir = read_abspath_link(args.delivery)
+        if args.reports:
+            self.reports_dir = read_abspath_link(args.reports)
+
+    def ignore_file(self, file: str) -> bool:
+        for line in self.ignored_files.splitlines():
+            if file == line:
+                return True
+        return False
+
+    def update(self) -> None:
+        if os.system(f"curl -s {INSTALL_LINK} | bash") != 0:
+            exit(1)
+        os.system(f"{self.docker} pull {DOCKER_IMAGE}")
+        os.system(f"{self.docker} image prune -f")
+        print(f"\n{COLORS['bold']}Successfully updated cs{COLORS['reset']}")
+
+    def parse_log_file(self, total_errors: dict) -> dict:
+        errors = {}
+        lines = open(self.log_file).read().splitlines()
+
+        for line in lines:
+            file = line.split("./")[1].split(":")[0]
+            error = line.split(": ")[1].split(":")[0]
+            description = line.split(": ")[1].split(":")[1]
+            line_nbr = line.split(":")[1]
+
+            if self.ignore and self.ignore_file(file):
+                total_errors["ignored"] += 1
+                continue
+            if file not in errors:
+                errors[file] = {"errors": [{"type": error, "description": description, "line": line_nbr}]}
+            else:
+                errors[file]["errors"].append({"type": error, "description": description, "line": line_nbr})
+            total_errors[error] += 1
+            total_errors["total"] += 1
+        return errors
+
+    def print_errors(self, errors: dict) -> None:
+        for file in errors:
+            print(f"./{file}:")
+            for error in errors[file]["errors"]:
+                print(f"{COLORS[error['type']]}{error['type']} [{error['description']}]:{COLORS['reset']} {CODING_STYLE_RULES[error['description']]} {COLORS['gray']}({file}:{error['line']}){COLORS['reset']}")
+
+    def print_summary_errors(self, total_errors: dict) -> None:
+        if self.ignore and total_errors["ignored"] > 0:
+            print(f"{COLORS['MINOR']}{total_errors['ignored']}{COLORS['reset']} ignored error(s){COLORS['reset']}")
+        if total_errors["FATAL"] > 0:
+            print(f"{COLORS['FATAL']}{total_errors['FATAL']} FATAL ERRORS{COLORS['reset']}")
+        print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS['MAJOR']}{total_errors['MAJOR']} major{COLORS['reset']}, {COLORS['MINOR']}{total_errors['MINOR']} minor{COLORS['reset']}, {COLORS['INFO']}{total_errors['INFO']} info{COLORS['reset']}")
+
+
+    def style(self) -> None:
+        total_errors = {"FATAL": 0, "MAJOR": 0, "MINOR": 0, "INFO": 0, "total": 0, "ignored": 0}
+        errors = self.parse_log_file(total_errors)
+
+        self.print_errors(errors)
+        self.print_summary_errors(total_errors)
+
+    def run_docker(self) -> None:
+        self.log_file = f"{self.reports_dir}/coding-style-reports.log"
+
+        delete_file(self.log_file)
+        os.system(f"{self.docker} run --rm --security-opt \"label:disable\" -i -v \"{self.delivery_dir}\":\"/mnt/delivery\" -v \"{self.reports_dir}\":\"/mnt/reports\" {DOCKER_IMAGE} \"/mnt/delivery\" \"/mnt/reports\"")
+        self.style()
+        if not self.keep_log:
+            delete_file(self.log_file)
 
 if __name__ == "__main__":
-    docker_command = check_docker_socket()
-    parser = argparse.ArgumentParser()
-    parser.add_argument("delivery", nargs="?", help="The directory where your project files are", default=".")
-    parser.add_argument("reports", nargs="?", help="The directory where you want the report files to be", default=".")
-    parser.add_argument("--update", help="Update the CS script and the docker image", action="store_true")
-    parser.add_argument("--no-ignore", help="Don't ignore files in .gitignore", action="store_true")
-    parser.add_argument("-k", help="Keeps the .log file", action="store_true")
-    parser.add_argument("-fc", help="Runs `make fclean` before the script", action="store_true")
-    args = parser.parse_args()
-
-    if args.update:
-        update(docker_command)
-        exit(0)
-    if args.fc:
-        print("Running make fclean")
-        os.popen("make fclean")
-    if args.no_ignore:
-        IGNORE_FILES = False
-    if args.k:
-        KEEP_LOG = True
-    if args.delivery:
-        DELIVERY_DIR = read_abspath_link(args.delivery)
-    if args.reports:
-        REPORTS_DIR = read_abspath_link(args.reports)
-    run_docker(docker_command)
+    CounterStyle()
