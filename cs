@@ -112,6 +112,11 @@ def file_in_array(files: list[FileError], file: str) -> tuple:
             return (True, file_error)
     return (False, FileError(file))
 
+# Only for Haskell forbidden extension message
+# Lambdananas gives a special message which makes everything crash yippee
+def has_forbidden_extension(line: str, file: str):
+    return ": " not in line and ".hs" in file
+
 class CounterStyle:
     def __init__(self) -> None:
         self.delivery_dir: str = "."
@@ -171,18 +176,28 @@ class CounterStyle:
 
         for line in lines:
             file = line.split("./")[1].split(":")[0]
-            error_type_str = line.split(": ")[1].split(":")[0]
-            try:
-                error_type = ErrorType[error_type_str]
-            except:
-                raise ValueError(f"Unknown error type {error_type_str}")
-            if " #" in line:
-                rule = line.split(": ")[1].split(":")[1].split(" #")[0]
-                description = line.split(": ")[1].split(":")[1].split(" #")[1]
+            if has_forbidden_extension(line, file):
+                file = file.split(" ")[0]
+                error_type = ErrorType.MAJOR
+                rule = "H-E1"
+                description = line.split(".hs ")[1]
+                line_nbr = "0"
             else:
-                rule = line.split(": ")[1].split(":")[1]
-                description = "hello world"
-            line_nbr = line.split(":")[1]
+                error_type_str = line.split(": ")[1].split(":")[0]
+                try:
+                    error_type = ErrorType[error_type_str]
+                except:
+                    raise ValueError(f"Unknown error type {error_type_str}")
+                if " #" in line:
+                    rule = line.split(": ")[1].split(":")[1].split(" #")[0]
+                    description = line.split(": ")[1].split(":")[1].split(" # ")[1]
+                else:
+                    rule = line.split(": ")[1].split(":")[1]
+                    if rule in CODING_STYLE_RULES:
+                        description = CODING_STYLE_RULES[rule]
+                    else:
+                        description = "Unknown rule description"
+                line_nbr = line.split(":")[1]
 
             if self.ignore and self.ignore_file(file):
                 total_errors["ignored"] += 1
@@ -199,18 +214,24 @@ class CounterStyle:
         for file_error in errors:
             print(f"./{file_error.file}:")
             for error in file_error.errors:
-                print(f"{COLORS[error.type]}{error.type} [{error.rule}]:{COLORS['reset']} {CODING_STYLE_RULES[error.rule]} {COLORS['gray']}({file_error.file}:{error.line}){COLORS['reset']}")
+                print(f"{COLORS[error.type]}{error.type} [{error.rule}]:{COLORS['reset']} {error.description} {COLORS['gray']}({file_error.file}:{error.line}){COLORS['reset']}")
 
     def print_summary_errors(self, total_errors: dict) -> None:
         if self.ignore and total_errors["ignored"] > 0:
             print(f"{COLORS[ErrorType.MINOR]}{total_errors['ignored']}{COLORS['reset']} ignored error(s){COLORS['reset']}")
         if total_errors[ErrorType.FATAL] > 0:
-            print(f"{COLORS[ErrorType.FATAL]}{total_errors['FATAL']} FATAL ERRORS{COLORS['reset']}")
-        print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS[ErrorType.MAJOR]}{total_errors[ErrorType.MAJOR]} major{COLORS['reset']}, {COLORS[ErrorType.MINOR]}{total_errors[ErrorType.MINOR]} minor{COLORS['reset']}, {COLORS['INFO']}{total_errors[ErrorType.INFO]} info{COLORS['reset']}")
-
+            print(f"{COLORS[ErrorType.FATAL]}{total_errors[ErrorType.FATAL]} FATAL ERRORS{COLORS['reset']}")
+        print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS[ErrorType.MAJOR]}{total_errors[ErrorType.MAJOR]} major{COLORS['reset']}, {COLORS[ErrorType.MINOR]}{total_errors[ErrorType.MINOR]} minor{COLORS['reset']}, {COLORS[ErrorType.INFO]}{total_errors[ErrorType.INFO]} info{COLORS['reset']}")
 
     def style(self) -> None:
-        total_errors = {ErrorType.FATAL: 0, ErrorType.MAJOR: 0, ErrorType.MINOR: 0, ErrorType.INFO: 0, "total": 0, "ignored": 0}
+        total_errors = {
+            ErrorType.FATAL: 0,
+            ErrorType.MAJOR: 0,
+            ErrorType.MINOR: 0,
+            ErrorType.INFO: 0,
+            "total": 0,
+            "ignored": 0
+        }
         errors = self.parse_log_file(total_errors)
 
         self.print_errors(errors)
