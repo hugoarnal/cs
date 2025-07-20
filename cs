@@ -126,10 +126,11 @@ class CounterStyle:
 
         self.log_file: str = ""
 
+        self.parse_args()
+
         self.docker: str = check_docker_socket()
         self.ignored_files: str = get_ignored_files()
 
-        self.parse_args()
         self.run_docker()
 
     def parse_args(self) -> None:
