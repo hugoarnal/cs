@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import sys
 from enum import Enum
 
 INSTALL_LINK = "https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh"
@@ -224,6 +225,10 @@ class CounterStyle:
             print(f"{COLORS[ErrorType.FATAL]}{total_errors[ErrorType.FATAL]} FATAL ERRORS{COLORS['reset']}")
         print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS[ErrorType.MAJOR]}{total_errors[ErrorType.MAJOR]} major{COLORS['reset']}, {COLORS[ErrorType.MINOR]}{total_errors[ErrorType.MINOR]} minor{COLORS['reset']}, {COLORS[ErrorType.INFO]}{total_errors[ErrorType.INFO]} info{COLORS['reset']}")
 
+    def check_total_errors(self, total_errors: dict) -> None:
+        if len(open(self.log_file).read().splitlines()) != total_errors['total'] + total_errors['ignored']:
+            print(f"{COLORS['bold']}[PROBLEM]{COLORS['reset']} Different amount of errors between the log file and the parsed errors", file=sys.stderr)
+
     def style(self) -> None:
         total_errors = {
             ErrorType.FATAL: 0,
@@ -237,6 +242,7 @@ class CounterStyle:
 
         self.print_errors(errors)
         self.print_summary_errors(total_errors)
+        self.check_total_errors(total_errors)
 
     def run_docker(self) -> None:
         self.log_file = f"{self.reports_dir}/coding-style-reports.log"
