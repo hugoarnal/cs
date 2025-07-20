@@ -94,11 +94,11 @@ def read_abspath_link(relpath: str) -> str:
     return os.path.abspath(relpath)
 
 class Error:
-    def __init__(self, error_type: ErrorType, rule: str, description: str, line: str) -> None:
+    def __init__(self, error_type: ErrorType, rule: str, description: str, line_nb: int) -> None:
         self.type: ErrorType = error_type
         self.rule: str = rule
         self.description: str = description
-        self.line: str = line
+        self.line_nb: int = line_nb
 
 class FileError:
     def __init__(self, file: str):
@@ -182,7 +182,7 @@ class CounterStyle:
                 error_type = ErrorType.MAJOR
                 rule = "H-E1"
                 description = line.split(".hs ")[1]
-                line_nbr = "0"
+                line_nb = 0
             else:
                 error_type_str = line.split(": ")[1].split(":")[0]
                 try:
@@ -198,7 +198,7 @@ class CounterStyle:
                         description = CODING_STYLE_RULES[rule]
                     else:
                         description = "Unknown rule description"
-                line_nbr = line.split(":")[1]
+                line_nb = int(line.split(":")[1])
 
             if self.ignore and self.ignore_file(file):
                 total_errors["ignored"] += 1
@@ -206,7 +206,7 @@ class CounterStyle:
             file_error = file_in_array(errors, file)
             if file_error[0] is False:
                 errors.append(file_error[1])
-            file_error[1].errors.append(Error(error_type, rule, description, line_nbr))
+            file_error[1].errors.append(Error(error_type, rule, description, line_nb))
             total_errors[error_type] += 1
             total_errors["total"] += 1
         return errors
@@ -215,7 +215,7 @@ class CounterStyle:
         for file_error in errors:
             print(f"./{file_error.file}:")
             for error in file_error.errors:
-                print(f"{COLORS[error.type]}{error.type} [{error.rule}]:{COLORS['reset']} {error.description} {COLORS['gray']}({file_error.file}:{error.line}){COLORS['reset']}")
+                print(f"{COLORS[error.type]}{error.type} [{error.rule}]:{COLORS['reset']} {error.description} {COLORS['gray']}({file_error.file}:{error.line_nb}){COLORS['reset']}")
 
     def print_summary_errors(self, total_errors: dict) -> None:
         if self.ignore and total_errors["ignored"] > 0:
