@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import subprocess
 import sys
 from enum import Enum
 
@@ -86,8 +87,21 @@ def delete_file(file: str) -> None:
     except:
         None
 
-def get_ignored_files() -> str:
-    return os.popen("git check-ignore $(find . -type f -printf \"%P\n\")").read()
+def get_ignored_files() -> dict[str]:
+    p = subprocess.Popen(
+        "git check-ignore $(find . -type f -printf \"%P\n\")",
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+
+    stdout, stderr = p.communicate()
+
+    if stderr:
+        # We could log that we couldn't find files to ignore here but
+        # I don't think it's really that useful
+        return []
+    return stdout.splitlines()
 
 def read_abspath_link(relpath: str) -> str:
     if os.path.islink(relpath):
@@ -130,7 +144,7 @@ class CounterStyle:
         self.parse_args()
 
         self.docker: str = check_docker_socket()
-        self.ignored_files: str = get_ignored_files()
+        self.ignored_files: dict[str] = get_ignored_files()
 
         self.run_docker()
 
@@ -160,7 +174,7 @@ class CounterStyle:
             self.reports_dir = read_abspath_link(args.reports)
 
     def ignore_file(self, file: str) -> bool:
-        for line in self.ignored_files.splitlines():
+        for line in self.ignored_files:
             if file == line:
                 return True
         return False
