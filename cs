@@ -188,7 +188,9 @@ class CounterStyle:
 
     def parse_log_file(self, total_errors: dict) -> list[FileError]:
         errors = []
-        lines = open(self.log_file).read().splitlines()
+        file = open(self.log_file)
+        lines = file.read().splitlines()
+        file.close()
 
         for line in lines:
             file = line.split("./")[1].split(":")[0]
@@ -230,18 +232,64 @@ class CounterStyle:
         for file_error in errors:
             print(f"./{file_error.file}:")
             for error in file_error.errors:
-                print(f"{COLORS[error.type]}{error.type} [{error.rule}]:{COLORS['reset']} {error.description} {COLORS['gray']}({file_error.file}:{error.line_nb}){COLORS['reset']}")
+                print(
+                    COLORS[error.type] +
+                    f"{error.type} [{error.rule}]:" +
+                    COLORS["reset"] +
+                    f" {error.description} " +
+                    COLORS["gray"] +
+                    f"({file_error.file}:{error.line_nb})" +
+                    COLORS["reset"]
+                )
 
     def print_summary_errors(self, total_errors: dict) -> None:
         if self.ignore and total_errors["ignored"] > 0:
-            print(f"{COLORS[ErrorType.MINOR]}{total_errors['ignored']}{COLORS['reset']} ignored error(s){COLORS['reset']}")
+            print(
+                COLORS[ErrorType.MINOR] +
+                total_errors["ignored"] +
+                COLORS["reset"] +
+                " ignored error(s)" +
+                COLORS["reset"]
+            )
         if total_errors[ErrorType.FATAL] > 0:
-            print(f"{COLORS[ErrorType.FATAL]}{total_errors[ErrorType.FATAL]} FATAL ERRORS{COLORS['reset']}")
-        print(f"{COLORS['bold']}{total_errors['total']} error(s){COLORS['reset']}, {COLORS[ErrorType.MAJOR]}{total_errors[ErrorType.MAJOR]} major{COLORS['reset']}, {COLORS[ErrorType.MINOR]}{total_errors[ErrorType.MINOR]} minor{COLORS['reset']}, {COLORS[ErrorType.INFO]}{total_errors[ErrorType.INFO]} info{COLORS['reset']}")
+            print(
+                COLORS[ErrorType.FATAL] +
+                f"{total_errors[ErrorType.FATAL]} FATAL ERROR(S)" +
+                COLORS["reset"]
+            )
+        print(
+            COLORS['bold'] +
+            f"{total_errors['total']} error(s)" +
+            COLORS['reset'] +
+            ", " +
+            COLORS[ErrorType.MAJOR] +
+            f"{total_errors[ErrorType.MAJOR]} major" +
+            COLORS['reset'] +
+            ", " +
+            COLORS[ErrorType.MINOR] +
+            f"{total_errors[ErrorType.MINOR]} minor" +
+            COLORS['reset'] +
+            ", " +
+            COLORS[ErrorType.INFO] +
+            f"{total_errors[ErrorType.INFO]} info" +
+            COLORS['reset']
+        )
 
     def check_total_errors(self, total_errors: dict) -> None:
-        if len(open(self.log_file).read().splitlines()) != total_errors['total'] + total_errors['ignored']:
-            print(f"{COLORS['bold']}[PROBLEM]{COLORS['reset']} Different amount of errors between the log file and the parsed errors", file=sys.stderr)
+        file = open(self.log_file)
+        log_file_errors = len(file.read().splitlines())
+        file.close()
+
+        total_with_ignored = total_errors['total'] + total_errors['ignored']
+
+        if log_file_errors != total_with_ignored:
+            print(
+                COLORS["bold"] +
+                "[PROBLEM]" +
+                COLORS["reset"] +
+                f" Different amount of errors between the log file ({log_file_errors}) and the parsed errors ({total_with_ignored})",
+                file=sys.stderr
+            )
 
     def style(self) -> None:
         total_errors = {
@@ -261,8 +309,20 @@ class CounterStyle:
     def run_docker(self) -> None:
         self.log_file = f"{self.reports_dir}/coding-style-reports.log"
 
+        docker_command = (
+            self.docker +
+            " run --rm --security-opt \"label:disable\" -i " +
+            f"-v \"{self.delivery_dir}\":\"/mnt/delivery\" " +
+            f"-v \"{self.reports_dir}\":\"/mnt/reports\"" +
+            f" {DOCKER_IMAGE} " +
+            "\"/mnt/delivery\" " +
+            "\"/mnt/reports\" "
+        )
+
         delete_file(self.log_file)
-        os.system(f"{self.docker} run --rm --security-opt \"label:disable\" -i -v \"{self.delivery_dir}\":\"/mnt/delivery\" -v \"{self.reports_dir}\":\"/mnt/reports\" {DOCKER_IMAGE} \"/mnt/delivery\" \"/mnt/reports\"")
+        os.system(
+            docker_command
+        )
         self.style()
         if not self.keep_log:
             delete_file(self.log_file)
