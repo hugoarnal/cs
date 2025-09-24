@@ -7,7 +7,7 @@ from enum import Enum
 
 INSTALL_LINK = "https://raw.githubusercontent.com/hugoarnal/cs/main/install.sh"
 DOCKER_SOCKET = "/var/run/docker.sock"
-DOCKER_IMAGE = "ghcr.io/epitech/coding-style-checker:latest"
+DOCKER_IMAGE = "ghcr.io/epitech/coding-style-checker@sha256:9abec0521ebdd87015eccd548523f44a5cff0de80e23c55e6eebcfd08e0013ce"
 
 CODING_STYLE_RULES = {
     # C-O: Files organization
