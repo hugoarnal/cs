@@ -140,10 +140,10 @@ class CounterStyle:
         self.keep_log: bool = False
 
         self.log_file: str = ""
+        self.docker: str = check_docker_socket()
 
         self.parse_args()
 
-        self.docker: str = check_docker_socket()
         self.ignored_files: dict[str] = get_ignored_files()
 
         self.run_docker()
