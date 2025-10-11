@@ -1,7 +1,11 @@
 > [!CAUTION]
 > This script is only for **the OLD [Banana v3](https://github.com/Epitech/banana-coding-style-checker) version**.
+>
 > This is **NOT** the latest version using `epiclang`.
+>
 > It's recommended to use the latest version of Banana.
+>
+> You can use [cs2](https://github.com/hugoarnal/cs2) for Banana v4 support.
 
 # Counter Style
 Yet another Coding Style Checker script.
